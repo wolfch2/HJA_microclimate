@@ -69,9 +69,11 @@ setPaths(cachePath="temp", inputPath="temp", modulePath="temp", outputPath="temp
 dir.create("data_output")
 dir.create("output")
 
+source("scripts - Andrews2/utility_functions.R")
+
 registerDoMC(24)
 
-system("001 - build 5m rasters, site reduce, and smooth.R")
+system("scripts - Andrews2/001 - raster setup.R")
 
 
 

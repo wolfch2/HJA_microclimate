@@ -1,15 +1,16 @@
 # Buffer large clumps of NA cells in raster to remove artifacts
 # around edges.  Clumps only buffered if their size exceeds threshold.
 # "drop" is the number of times to repeat buffering
-buffer_inward = function(raster,drop,threshold=1e4){
+buffer_inward = function(rast,drop,threshold=1e4){
         require(raster)
 
         rast_NA = rast
         rast_NA[] = as.numeric(is.na(rast[]))
         rast_clump = clump(rast_NA, directions=8) # NA and 0 are bg values for clumping
 
-        outside = rast * 0
-        outside[rast_clump[] %in% names(which(table(rast_clump[]) > 1e4))] = NA
+        outside = rast
+        outside[] = 0 # start w/ 0 rast, then set values in big clumps to NA..
+        outside[rast_clump[] %in% names(which(table(rast_clump[]) > threshold))] = NA
 
         for(x in 1:drop){ # drop outer cells this many times
                 print(x)
