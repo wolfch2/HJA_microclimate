@@ -312,7 +312,9 @@ png("output/covar_map.png", width=7.5, height=7.75, units="in", res=400)
 print(do.call("grid.arrange", c(plot_list, nrow=6)))
 dev.off()
 
-########################################
+######################################## site reduce
+
+names(elev_5) = "ElevationXX5"
 
 micro_files = list.files("data_processed/microtopography")
 microtopo = stack(pblapply(micro_files, function(scale){
@@ -320,10 +322,44 @@ microtopo = stack(pblapply(micro_files, function(scale){
                                    names(stack) = paste0(names(stack), "XX", scale)
                                    return(stack)
                          }))
-names(elev_5) = "ElevationXX5"
+topo = stack(microtopo, elev_5)
+veg_rasts_all = stack(veg_rasts,PC1,PC2) # alternatively, could use smoothed versions directly
+
+sites_buffer = st_buffer(sites_UTM_spatial, 500) # for cropping
+
+rast_reduce = foreach(i = 1:nrow(sites_buffer), .combine="rbind") %dopar% {
+        print(i)
+        # veg reduce        
+        rast_crop_5 = crop(veg_rasts_all, sites_buffer[i,])
+        dist_rast_5 = distanceFromPoints(rast_crop_5, sites[i,c("X","Y")])
+        reduce_5 = t(sapply(seq(10,100,by=10), function(x){
+                apply(rast_crop_5[dist_rast_5 <= x], 2, function(x) mean(x,na.rm=TRUE))
+        }))
+        rownames(reduce_5) = seq(10,100,by=10)
+        reduce_5 = melt(reduce_5)
+        out_veg = data.frame(site=sites$LOCATION_CODE[i], scale=reduce_5$Var1, variable=reduce_5$Var2,
+                             value=reduce_5$value)
+        # topo reduce
+        topo_crop = crop(topo, sites_buffer[i,])
+        dist_rast_topo = distanceFromPoints(topo_crop, sites[i,c("X","Y")])
+        reduce_topo = melt(raster::extract(topo_crop, sites[i,c("X","Y")]))
+        reduce_topo = separate(reduce_topo,"Var2",c("variable","scale"), sep="XX")
+        out_topo = data.frame(site=sites$LOCATION_CODE[i], reduce_topo[,c("variable","scale","value")],
+                              stringsAsFactors=FALSE)
+        #
+        out = na.omit(rbind(out_veg, out_topo))
+        return(out)
+}
+
+rast_reduce$scale = as.numeric(rast_reduce$scale)
+
+######################################## save results
+
 predictors = stack(smoothed_stack,
                    microtopo,
                    elev_5)
 
 saveRDS(predictors,"data_processed/predictors.RDS") # ~3 GB, 30 sec to read
+saveRDS(sites,"data_processed/sites.RDS")
+saveRDS(rast_reduce, "data_processed/rast_reduce.RDS")
 

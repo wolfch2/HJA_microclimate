@@ -74,6 +74,7 @@ source("scripts - Andrews2/utility_functions.R")
 registerDoMC(24)
 
 system("scripts - Andrews2/001 - raster setup.R")
+system("scripts - Andrews2/002 - site reduce.R")
 
 
 
