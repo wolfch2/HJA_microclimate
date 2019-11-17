@@ -7,7 +7,7 @@ rast_df = data.frame(read_excel("data_input/HJA variables_final.xlsx", na="NA"))
 elev = raster(rast_df$Path[rast_df$Variable == "Elevation"])
 
 elev_5 = aggregate(elev, fact=5)
-elev_5 = buffer_inward(elev_5, rast_df$Drop_cells[rast_df$Variable == "Elevation"] / 5)
+elev_5 = buffer_inward(elev_5, rast_df$Drop_cells[rast_df$Variable == "Elevation"])
 
 pred_mask = elev_5
 pred_mask[] = ! is.na(pred_mask[])
@@ -63,12 +63,9 @@ PC_rasts = pblapply(1:ncol(PCA_mat), function(i){
                             return(out)
 })
 
-sites = read.csv("data_input/locMS045.csv", as.is=TRUE)[-(1:4),] # first few are for regions
-sites$code = trimws(sites$LOCATION_CODE)
-sites$code_group = substr(sites$code,1,2)
-sites$code_short = substr(sites$code,3,nchar(sites$code))
-sites_WGS84 = st_as_sf(sites, coords=c("WEST_BOUND_COORD_decdeg","NORTH_BOUND_COORD_decdeg"),crs=4326)
-sites_UTM_spatial = st_transform(sites_WGS84,crs=st_crs(projection(elev_5)), asText=TRUE)
+sites = data.frame(read_excel("data_input/site_locations.xlsx"))
+sites$LOCATION_CODE = sites$POINT
+sites_UTM_spatial = st_as_sf(sites, coords=c("X","Y"),crs=st_crs(projection(elev_5)))
 
 PC1 = PC_rasts[[1]]
 sites$PC1 = raster::extract(PC1, sites_UTM_spatial, buffer=25, fun=mean)
@@ -80,10 +77,9 @@ harvest = read_sf("data_input/harvest_layer/harvest.shp")
 harvest_proj = st_transform(harvest, st_crs(sites_UTM_spatial)) # original proj. info may be slightly different
 harvest_union = st_union(harvest_proj)
 
-sites$plantation = factor(st_intersects(sites_UTM_spatial, harvest_union, sparse=FALSE)[,1],
-                          levels=c(TRUE,FALSE),
+sites$plantation = factor(sites$Plantation,
+                          levels=c(1,0),
                           labels=c("Plantation","Mature forest/old growth"))
-sites = data.frame(sites, st_coordinates(sites_UTM_spatial))
 
 p1 = ggplot(sites, aes(x=PC1, y=PC2, color=plantation)) +
         geom_point() +
@@ -182,6 +178,7 @@ geom_point(data=sites, aes(x=X,y=Y,fill=NULL,), color="black", shape=20, size=1.
 p_top = plot_grid(p2, p3, p1, labels = c('A', 'B', 'C'), label_size = 12, nrow=1, align='v')
 p_bot = plot_grid(p_PC1, p_PC2, labels = c('D', 'E'), label_size = 12, nrow=1)
 
+dir.create("output/veg_PC")
 png("output/veg_PC/biplot.png", width=12, height=8.5, units="in", res=300)
 print(grid.arrange(p_top, p_bot))
 dev.off()
@@ -235,7 +232,8 @@ smoothed_stack = stack(lapply(names(rast_stack), function(rast_name){
                                                                     .export=c("wt_list","scales")) %dopar% {
                                               rast_small_not_NA = rast_small
                                               rast_small_not_NA[] = 1 - is.na(rast_small[])
-                                              rast_small[is.na(rast_small[])] = 0 # set NA to 0 so velox sum will work (tracking NAs in rast_small_not_NA)
+                                              rast_small[is.na(rast_small[])] = 0 
+                                              # ^-- set NA to 0 so velox sum will work (tracking NAs in rast_small_not_NA)
                                               rast_small_vel = velox(rast_small); rast_small_not_NA_vel = velox(rast_small_not_NA)                
                                               #
                                               out = lapply(scales, function(scale){
@@ -327,6 +325,7 @@ veg_rasts_all = stack(veg_rasts,PC1,PC2) # alternatively, could use smoothed ver
 
 sites_buffer = st_buffer(sites_UTM_spatial, 500) # for cropping
 
+registerDoMC(N_CORE_SMALL)
 rast_reduce = foreach(i = 1:nrow(sites_buffer), .combine="rbind") %dopar% {
         print(i)
         # veg reduce        
@@ -350,6 +349,7 @@ rast_reduce = foreach(i = 1:nrow(sites_buffer), .combine="rbind") %dopar% {
         out = na.omit(rbind(out_veg, out_topo))
         return(out)
 }
+registerDoMC(N_CORE_LARGE)
 
 rast_reduce$scale = as.numeric(rast_reduce$scale)
 
@@ -362,4 +362,35 @@ predictors = stack(smoothed_stack,
 saveRDS(predictors,"data_processed/predictors.RDS") # ~3 GB, 30 sec to read
 saveRDS(sites,"data_processed/sites.RDS")
 saveRDS(rast_reduce, "data_processed/rast_reduce.RDS")
+
+############################## vegetation correlation matrix
+
+veg_data = rast_reduce[rast_reduce$scale == 10 & rast_reduce$variable %in% rast_df$Variable[rast_df$Group == "Vegetation"],]
+veg_data = spread(veg_data,"variable","value")[,-c(1,2)]
+veg_data = na.omit(veg_data)
+
+veg_cor = mat.sort(cor(veg_data, method="spearman"))
+veg_cor = melt(veg_cor)
+veg_cor = veg_cor[veg_cor$Var1 != veg_cor$Var2,]
+veg_cor$lab = round(veg_cor$value,2)
+
+p = ggplot(veg_cor, aes(x=format_names(Var1),y=format_names(Var2),fill=value)) +
+        geom_raster() +
+        scale_fill_gradientn(colors=rev(brewer.pal(11,"RdBu")),
+                             guide=guide_colorbar(title="Correlation (Spearman's Rho)"),
+                             limits=c(-1,1)) +
+        theme_bw() +
+        theme(axis.ticks=element_line(color="black"),
+              axis.text=element_text(color="black"),
+              axis.text.x=element_text(angle=90,hjust=1,vjust=0.5),
+              axis.title=element_blank(),
+              panel.border=element_rect(color="black"),
+              legend.position="bottom",
+              legend.direction="horizontal") +
+        coord_fixed() +
+        geom_text(aes(label=lab), size=3)
+
+png("output/veg_cor.png", width=7, height=7, units="in", res=400)
+p
+dev.off()
 

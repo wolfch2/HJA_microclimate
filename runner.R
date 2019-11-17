@@ -50,8 +50,8 @@ require(scales)
 require(sf)
 require(sp)
 require(SpaDES)
-require(StreamThermal) # devtools::install_github('tsangyp/StreamThermal')
 require(stringr)
+require(stringi)
 require(tidyr)
 require(tidyverse)
 require(unixtools) # devtools::install_github("s-u/unixtools")
@@ -59,6 +59,10 @@ require(vegan)
 require(velox)
 require(xgboost) # https://xgboost.readthedocs.io/en/latest/R-package/xgboostPresentation.html
 require(xgboostExplainer) # devtools::install_github("AppliedDataSciencePartners/xgboostExplainer")
+require(R.devices) # https://www.jottr.org/2018/07/21/suppressgraphics/
+
+N_CORE_LARGE = 24 # max. number of cores to use
+N_CORE_SMALL = 6 # number of cores for memmory intensive tasks
 
 #setwd("/home/stats/wolfch/Andrews2")
 #set.tempdir("/home/stats/wolfch/temp2")
@@ -66,15 +70,34 @@ setwd("/home/chrisgraywolf/analysis_desktop/Andrews2")
 set.tempdir("/home/chrisgraywolf/analysis_desktop/temp")
 setPaths(cachePath="temp", inputPath="temp", modulePath="temp", outputPath="temp", silent = FALSE)
 
-dir.create("data_output")
+dir.create("data_processed")
 dir.create("output")
 
 source("scripts - Andrews2/utility_functions.R")
 
-registerDoMC(24)
+registerDoMC(N_CORE_LARGE)
 
-system("scripts - Andrews2/001 - raster setup.R")
-system("scripts - Andrews2/002 - site reduce.R")
+start = Sys.time()
+# source("scripts - Andrews2/001 - raster setup.R") # 20 min
+# source("scripts - Andrews2/002 - gridMET comparison.R", encoding = "Latin1") # 1 sec
+Sys.time() - start
+
+
+
+
+
+test = list.files("/home/chrisgraywolf/analysis_desktop/Andrews/data/temperature_updated_again/cleaned/",
+full.names=TRUE)
+
+test = data.frame(rbindlist(pblapply(test, read.csv)))
+
+start = Sys.time()
+xx = str_split_fixed(test$DATE_TIME, " ", 2)
+Sys.time() - start
+
+start = Sys.time()
+xx = stringi::stri_split_fixed(test$DATE_TIME, " ", 2, simplify=TRUE)
+Sys.time() - start
 
 
 
