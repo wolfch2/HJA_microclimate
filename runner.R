@@ -1,18 +1,3 @@
-# assumes data_input is present and has the appropriate files
-
-LD_LIBRARY_PATH=/home/stats/wolfch/lib:/cm/local/apps/gcc/5.1.0/lib64:/cm/shared/apps/gdal/2.1.1/lib:/cm/shared/apps/gdal/2.1.1/bin:/home/stats/wolfch/my_libs:/home/stats/wolfch/R_libs/3.5.1:/cm/shared/apps/R/3.5.1/lib64/R:/home/stats/wolfch/wood/curl/wolf_curl/lib:/cm/shared/apps/R/3.2.2/lib64/R:/cm/shared/apps/slurm/14.11.11/lib64/slurm:/cm/shared/apps/slurm/14.11.11/lib64:/cm/shared/apps/sge/2011.11p1/lib/linux-x64:/cm/local/apps/gcc/5.1.0/lib:/cm/local/apps/gcc/5.1.0/lib64
-export LD_RUN_PATH=/cm/shared/apps/gdal/2.1.1/bin
-export PKG_CONFIG_PATH=/home/stats/wolfch/lib/pkgconfig
-export R_LIBS=/home/stats/wolfch/R_libs/3.5.1
-export TMPDIR=/home/stats/wolfch/temp
-
-/cm/shared/apps/R/3.5.1/bin/R
-
-# to install caret if /tmp full (https://stackoverflow.com/questions/17841332/using-install-packages-with-custom-temp-dir)
-#        Sys.setenv(TMPDIR="/home/stats/wolfch/temp2")
-#        configure.vars="/home/stats/wolfch/temp2"
-#        install.packages("mlr")
-
 require(ALEPlot)
 require(cowplot)
 require(data.table)
@@ -64,41 +49,23 @@ require(R.devices) # https://www.jottr.org/2018/07/21/suppressgraphics/
 N_CORE_LARGE = 24 # max. number of cores to use
 N_CORE_SMALL = 6 # number of cores for memmory intensive tasks
 
-#setwd("/home/stats/wolfch/Andrews2")
-#set.tempdir("/home/stats/wolfch/temp2")
 setwd("/home/chrisgraywolf/analysis_desktop/Andrews2")
-set.tempdir("/home/chrisgraywolf/analysis_desktop/temp")
+
+set.tempdir("temp")
 setPaths(cachePath="temp", inputPath="temp", modulePath="temp", outputPath="temp", silent = FALSE)
 
 dir.create("data_processed")
 dir.create("output")
 
-source("scripts - Andrews2/utility_functions.R")
-
 registerDoMC(N_CORE_LARGE)
 
-start = Sys.time()
-# source("scripts - Andrews2/001 - raster setup.R") # 20 min
-# source("scripts - Andrews2/002 - gridMET comparison.R", encoding = "Latin1") # 1 sec
-Sys.time() - start
-
-
-
-
-
-test = list.files("/home/chrisgraywolf/analysis_desktop/Andrews/data/temperature_updated_again/cleaned/",
-full.names=TRUE)
-
-test = data.frame(rbindlist(pblapply(test, read.csv)))
-
-start = Sys.time()
-xx = str_split_fixed(test$DATE_TIME, " ", 2)
-Sys.time() - start
-
-start = Sys.time()
-xx = stringi::stri_split_fixed(test$DATE_TIME, " ", 2, simplify=TRUE)
-Sys.time() - start
-
-
-
+#start = Sys.time()
+source("scripts - Andrews2/utility_functions.R")
+source("scripts - Andrews2/001 - raster setup.R") # 20 min
+source("scripts - Andrews2/002 - gridMET comparison.R", encoding = "Latin1") # 1 sec
+source("scripts - Andrews2/003 - set up temperature.R") # 27 sec
+source("scripts - Andrews2/004 - fit models.R") # 45 sec
+source("scripts - Andrews2/005 - spatial prediction.R") # 2 min
+source("scripts - Andrews2/006 - ALE plot.R") # 4 sec
+#Sys.time() - start
 

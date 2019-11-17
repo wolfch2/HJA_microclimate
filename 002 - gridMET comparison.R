@@ -76,6 +76,6 @@ q = ggplot(df_long, aes(x=GRIDMET,y=VANMET)) +
 
 dir.create("output/GRIDMET")
 png("output/GRIDMET/daily_GRIDMET_VANMET.png", width=9, height=9, units="in", res=400)
-plot_grid(p, q, labels = c('A', 'B'), label_size = 12, nrow=2)
+print(plot_grid(p, q, labels = c('A', 'B'), label_size = 12, nrow=2))
 dev.off()
 

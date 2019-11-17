@@ -30,7 +30,7 @@ pred = foreach(arg_row=1:nrow(args_mat), .combine="rbind") %dopar%{
 
         data_var_split = split(data_var, data_var$Year)
 
-        pred_CV = foreach(i = 1:length(data_var_split), .combine="rbind", .packages="xgboost") %do% {
+        pred_CV = foreach(i = 1:length(data_var_split), .combine="rbind") %do% {
                 print(i)
                 test_data = data_var_split[[i]] # for annual metrics, and spatial CV, test_data will just have one row
                 train_data = data_var[data_var$Year != test_data$Year[1],]
@@ -61,7 +61,7 @@ stats$response_long = factor(stats$response, levels=c("value","delta_metrics"),
 
 dummy = pred; dummy$obs = pred$pred; dummy$pred = pred$obs;
 
-plot_list = lapply(sort(unique(pred$var)), function(var){
+plot_list = lapply(sort(unique(pred$var))[c(1:3,5:6,4)], function(var){
         p = ggplot(pred[pred$var == var,], aes(x=obs,y=pred,color=year)) +
         geom_point(data=dummy[dummy$var == var,], color="#FFFFFF00") +
         geom_point(size=0.6, stroke=0) +
@@ -99,11 +99,11 @@ x.grob <- textGrob("     Observed", gp=gpar(fontsize=12))
 p_top_all = arrangeGrob(p_top, left = y.grob, bottom = x.grob)
 
 png("output/GRIDMET/GRIDMET_CV_year.png", width=7.2, height=6.5, units="in", res=300)
-plot_grid(p_top_all, leg, rel_heights=c(1,0.1), nrow=2)
+print(plot_grid(p_top_all, leg, rel_heights=c(1,0.1), nrow=2))
 dev.off()
 
 pdf("output/GRIDMET/GRIDMET_CV_year.pdf", width=7.2, height=6.5)
-plot_grid(plot_grid(plotlist=plot_list, nrow=3, align="hv"), leg, rel_heights=c(1,0.1), nrow=2)
+print(plot_grid(plot_grid(plotlist=plot_list, nrow=3, align="hv"), leg, rel_heights=c(1,0.1), nrow=2))
 dev.off()
 
 stats_year = do.call("rbind", lapply(split(pred, paste(pred$response,pred$var,pred$year)), function(df){
@@ -132,7 +132,7 @@ p = ggplot(stats_year, aes(x=year, y=MAE, color=response_long)) +
         ylab("Mean absolute error")
 
 png("output/GRIDMET/MAE_year.png", width=7.5, height=5, units="in", res=300)
-p
+print(p)
 dev.off()
 
 ############################## quantile regression models for imp. plots etc.
@@ -195,21 +195,22 @@ p = ggplot(rel_inf_agg, aes(x=Scale,y=value,color=Group)) +
               legend.margin=margin(1,1,1,1))
 
 dir.create("output/quantile")
-png("output/quantile/pred_scale_no_CV.png", width=7, height=5, units="in", res=300)
-p
+png("output/quantile/influence_by_scale.png", width=7, height=5, units="in", res=300)
+print(p)
 dev.off()
 
 rel_inf_agg_scale = aggregate(value ~ temp_var + Variable + Group + quantile, FUN=sum, data=rel_inf)
 rel_inf_agg_scale$Variable = factor(rel_inf_agg_scale$Variable, levels=rast_df$Variable[c(1:15,17:21,16)])
 rel_inf_agg_scale$Variable_text = as.character(rel_inf_agg_scale$Variable)
 rel_inf_agg_scale$Variable_text[rel_inf_agg_scale$value < 2.5] = ""
-rel_inf_agg_scale$temp_var = factor(rel_inf_agg_scale$temp_var, levels=unique(rel_inf_agg_scale$temp_var)[c(1:3,4,6,5)])
+rel_inf_agg_scale$temp_var = factor(rel_inf_agg_scale$temp_var, levels=unique(rel_inf_agg_scale$temp_var))
 
 # https://stackoverflow.com/questions/34903368/how-to-center-stacked-percent-barchart-labels/34904604#34904604
-p = ggplot(rel_inf_agg_scale, aes(x=quantile,y=value,fill=Variable)) +
-        geom_bar(stat="identity", show.legend=FALSE) +
+p = ggplot(rel_inf_agg_scale, aes(x=quantile,y=value,fill=format_names(Variable))) +
+        geom_bar(stat="identity") +
         facet_wrap(~ temp_var, nrow=6) +
-        scale_fill_manual(values = unique(rast_df$Variable_color)[c(1:15,17:21,16)]) +
+        scale_fill_manual(values = unique(rast_df$Variable_color)[c(1:15,17:21,16)],
+                          guide=guide_legend(title=NULL,nrow=21)) +
         xlab("Quantile") +
         ylab("Relative influence (%)") +
         theme_bw() +
@@ -219,12 +220,12 @@ p = ggplot(rel_inf_agg_scale, aes(x=quantile,y=value,fill=Variable)) +
               axis.ticks=element_line(color="black"),
               panel.border=element_rect(color="black"),
               panel.grid.minor.y=element_blank(),
-              legend.position="bottom",
+              legend.position="right",
               legend.key.width=unit(2,"lines"),
               legend.margin=margin(1,1,1,1))
 
-png("output/quantile/pred_scale_no_CV3.png", width=8, height=6.5, units="in", res=300)
-p
+png("output/quantile/influence_by_quantile.png", width=8, height=6.5, units="in", res=300)
+print(p)
 dev.off()
 
 # 90% quantile only
@@ -232,7 +233,7 @@ rel_inf_agg_scale = aggregate(value ~ temp_var + Variable + Group, FUN=sum, data
 rel_inf_agg_scale$Variable = factor(rel_inf_agg_scale$Variable, levels=rast_df$Variable[c(1:15,17:21,16)])
 rel_inf_agg_scale$Variable_text = as.character(rel_inf_agg_scale$Variable)
 rel_inf_agg_scale$Variable_text[rel_inf_agg_scale$value < 2.5] = ""
-rel_inf_agg_scale$temp_var = factor(rel_inf_agg_scale$temp_var, levels=unique(rel_inf_agg_scale$temp_var)[c(1:3,4,6,5)])
+rel_inf_agg_scale$temp_var = factor(rel_inf_agg_scale$temp_var, levels=unique(rel_inf_agg_scale$temp_var))
 rel_inf_agg_scale$Variable = factor(rel_inf_agg_scale$Variable, levels=rast_df$Variable)
 rel_inf_agg_scale$Variable_text = format_names(as.character(rel_inf_agg_scale$Variable))
 rel_inf_agg_scale$Variable_text[rel_inf_agg_scale$value < 2.5] = ""
@@ -254,12 +255,12 @@ p = ggplot(rel_inf_agg_scale, aes(x=temp_var,y=value,fill=Variable)) +
         geom_text(aes(label=Variable_text),
                   position=position_stack(vjust=0.5), size=3)
 
-png("output/quantile/pred_scale_no_CV_single.png", width=8, height=6.5, units="in", res=300)
-p
+png("output/quantile/influence_simple.png", width=8, height=6.5, units="in", res=300)
+print(p)
 dev.off()
 
-pdf("output/quantile/pred_scale_no_CV_single.pdf", width=8, height=6.5)
-p
+pdf("output/quantile/influence_simple.pdf", width=8, height=6.5)
+print(p)
 dev.off()
 
 aggregate(value ~ Group + temp_var, FUN=sum, data=rel_inf[rel_inf$quantile == 0.9,]) # paper text

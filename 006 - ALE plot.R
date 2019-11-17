@@ -65,9 +65,6 @@ p = ggplot(partial_mat,
          facet_grid(var ~ response_long, scales="free") +
          scale_color_manual(values = rast_df$Variable_color,
                             guide=guide_legend(ncol=1,title=NULL)) +   
-         #scale_x_continuous(breaks=pretty_breaks(n=3)) +            
-         #facet_wrap(~ variable, scales="free", nrow=6) +
-         #ggtitle("AvgDmeanSp (Standard deviation)") +
         geom_hline(yintercept=0, linetype="dashed") +
          theme_bw() +
          ylab("Change in average prediction") +
@@ -77,7 +74,12 @@ p = ggplot(partial_mat,
                axis.text=element_text(color="black"),
                panel.border=element_rect(color="black"),
                panel.spacing.x=unit(0.6,"lines"))
-png("output/quantile/pdp2_ALE.png", width=7.75, height=7.75, units="in", res=400)
-p
+
+png("output/quantile/ALE_plot.png", width=7.75, height=7.75, units="in", res=400)
+print(p)
+dev.off()
+
+pdf("output/quantile/ALE_plot.pdf", width=7.75, height=7.75)
+print(p)
 dev.off()
 

@@ -103,10 +103,10 @@ plot_list = lapply(unique(pred_mat$var)[c(1:3,5:6,4)], function(var){
 })
 
 png("output/quantile/pred_map_90.png", width=6-0.2, height=7.75/6*2, units="in", res=400)
-do.call("grid.arrange", c(plot_list, nrow=2))
+print(do.call("grid.arrange", c(plot_list, nrow=2)))
 dev.off()
 
 pdf("output/quantile/pred_map_90.pdf", width=6-0.2, height=7.75/6*2)
-do.call("grid.arrange", c(plot_list, nrow=2))
+print(do.call("grid.arrange", c(plot_list, nrow=2)))
 dev.off()
 

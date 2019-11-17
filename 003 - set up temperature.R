@@ -84,7 +84,7 @@ temperature_merged = merge(temperature, GRIDMET[,c("Date","min","max")], all.x=T
 
 ############################## compute annual metrics (two ways: unadjusted and relative to free-air)
 
-temp_split = split(temperature_merged,paste(temperature_merged$Year,temperature_merged$SITECODE))
+temp_split = split(temperature_merged,paste(temperature_merged$Year,temperature_merged$LOCATION_CODE))
 temperature_metrics = foreach(i=1:length(temp_split)) %dopar% {
         print(i)
         df = temp_split[[i]]
@@ -96,7 +96,7 @@ temperature_metrics = foreach(i=1:length(temp_split)) %dopar% {
                       MeanT=df$AIRTEMP_MEAN_DAY,
                       stringsAsFactors=FALSE)
         temps = t(T_custom_metrics(sitedata_micro)[,-1])
-        out = data.frame(site=df$SITECODE[1],
+        out = data.frame(site=df$LOCATION_CODE[1],
                    Year=df$Year[1],
                    variable=rownames(temps),
                    value=temps,
@@ -122,7 +122,7 @@ saveRDS(temperature_metrics, "data_processed/temperature_metrics.RDS")
 
 ############################## map # days
 
-boundaries = read_sf("data_processed/boundaries/boundary83.shp")
+boundaries = read_sf("data_input/boundaries/boundary83.shp")
 
 sites = readRDS("data_processed/sites.RDS")
 temperature_sites = merge(temperature, sites, by="LOCATION_CODE")
@@ -149,6 +149,6 @@ p = ggplot(boundaries) +
                       legend.box="horizontal")
 
 png("output/days_map.png", width=6, height=7, units="in", res=300)
-p
+print(p)
 dev.off()
 

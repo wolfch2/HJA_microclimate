@@ -296,7 +296,7 @@ plot_list = lapply(rast_df$Variable, function(var){
                          panel.grid.minor = element_line(colour="transparent"),
                          panel.border = element_rect(color=rast_df$Group_color[rast_df$Variable == var],
                                                      size=2),
-                         plot.margin=margin(0,1,0,0),
+                         plot.margin=margin(0.05,1,0,0),
                          legend.position=c(0,1),
                          legend.justification=0:1,
                          legend.title=element_text(size=8),
@@ -391,6 +391,6 @@ p = ggplot(veg_cor, aes(x=format_names(Var1),y=format_names(Var2),fill=value)) +
         geom_text(aes(label=lab), size=3)
 
 png("output/veg_cor.png", width=7, height=7, units="in", res=400)
-p
+print(p)
 dev.off()
 
