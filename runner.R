@@ -59,13 +59,13 @@ dir.create("output")
 
 registerDoMC(N_CORE_LARGE)
 
-#start = Sys.time()
+start = Sys.time()
 source("scripts - Andrews2/utility_functions.R")
-source("scripts - Andrews2/001 - raster setup.R") # 20 min
-source("scripts - Andrews2/002 - gridMET comparison.R", encoding = "Latin1") # 1 sec
-source("scripts - Andrews2/003 - set up temperature.R") # 27 sec
-source("scripts - Andrews2/004 - fit models.R") # 45 sec
-source("scripts - Andrews2/005 - spatial prediction.R") # 2 min
+#source("scripts - Andrews2/001 - raster setup.R") # 20 min
+#source("scripts - Andrews2/002 - gridMET comparison.R", encoding = "Latin1") # 1 sec
+#source("scripts - Andrews2/003 - set up temperature.R") # 27 sec
+#source("scripts - Andrews2/004 - fit models.R") # 45 sec
+#source("scripts - Andrews2/005 - spatial prediction.R") # 2 min
 source("scripts - Andrews2/006 - ALE plot.R") # 4 sec
-#Sys.time() - start
+Sys.time() - start
 

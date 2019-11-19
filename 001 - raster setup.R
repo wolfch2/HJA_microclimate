@@ -81,13 +81,20 @@ sites$plantation = factor(sites$Plantation,
                           levels=c(1,0),
                           labels=c("Plantation","Mature forest/old growth"))
 
-p1 = ggplot(sites, aes(x=PC1, y=PC2, color=plantation)) +
-        geom_point() +
-        geom_density_2d(alpha=0.15, show.legend=FALSE) +
+stand_year = read_sf("data_input/stand_age/hjaveg8.shp")
+sites$year = stand_year$YR_ORIGIN[as.numeric(st_intersects(
+        st_as_sf(sites, coords=c("X","Y"),crs=st_crs(projection(elev_5))), 
+        stand_year))]
+sites$year[sites$year == 0] = NA 
+
+p1 = ggplot(sites, aes(x=PC1, y=PC2, color=plantation, alpha=year)) +
+        geom_point(size=2) +
+        scale_alpha_continuous(guide=guide_legend(title=NULL,order=2), range=c(1,0.25)) +
+        geom_density_2d(alpha=0.35, show.legend=FALSE) +
         scale_color_manual(values=brewer.pal(3,"Set1")[3:2],
-                           guide=guide_legend(title=NULL, nrow=1)) +
+                           guide=guide_legend(title=NULL, order=1)) +
 theme_bw() +
-expand_limits(y=min(sites$PC2,na.rm=T)-0.6) +
+expand_limits(y=min(sites$PC2,na.rm=T)-0.8) +
 theme(axis.text=element_text(color="black"),
       axis.ticks=element_line(color="black"),
       panel.border=element_rect(color="black"),
@@ -95,6 +102,9 @@ theme(axis.text=element_text(color="black"),
       legend.key.size=unit(0.5,"lines"),
       legend.justification=c(0,0),
       aspect.ratio=1,
+      legend.spacing.y = unit(0, "cm"),
+      legend.box="vertical",
+      legend.direction="horizontal",
       legend.background=element_rect(color="black")) +
 xlab("Principal component 1") +
 ylab("Principal component 2")
