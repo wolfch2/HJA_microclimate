@@ -263,5 +263,7 @@ pdf("output/quantile/influence_simple.pdf", width=8, height=6.5)
 print(p)
 dev.off()
 
-aggregate(value ~ Group + temp_var, FUN=sum, data=rel_inf[rel_inf$quantile == 0.9,]) # paper text
+df = aggregate(value ~ Group + temp_var, FUN=sum, data=rel_inf[rel_inf$quantile == 0.9,]) # paper text
+df = df[order(df$value, decreasing=TRUE),]
+split(df, df$Group)
 

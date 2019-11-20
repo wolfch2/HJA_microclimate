@@ -400,7 +400,7 @@ p = ggplot(veg_cor, aes(x=format_names(Var1),y=format_names(Var2),fill=value)) +
         coord_fixed() +
         geom_text(aes(label=lab), size=3)
 
-png("output/veg_cor.png", width=7, height=7, units="in", res=400)
+png("output/veg_PC/veg_cor.png", width=7, height=7, units="in", res=400)
 print(p)
 dev.off()
 
