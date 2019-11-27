@@ -10,7 +10,7 @@ rast_df = data.frame(read_excel("data_input/HJA variables_final.xlsx", na="NA"))
 rast_df = rast_df[rast_df$Group != "Vegetation",]
 rast_df$Variable_color = c(brewer.pal(4,"Greens")[c(3,4)],
                            brewer.pal(9,"Blues")[9],
-                           brewer.pal(table(rast_df$Group)["Microtopography"],"YlOrBr"))
+                           brewer.pal(6,"YlOrBr")[(6-table(rast_df$Group)["Microtopography"]+1):6])
 
 rast_reduce = readRDS("data_processed/rast_reduce.RDS")
 rast_reduce = rast_reduce[rast_reduce$variable %in% rast_df$Variable & rast_reduce$scale %in% scales,]
@@ -39,7 +39,6 @@ partial_mat = data.frame(rbindlist(foreach(i=1:nrow(pred_mat)) %dopar%{
         if(pred_mat$missing_subset[i]){
                 covar_data = covar_data[covar_data$Year %in% 2012:2015,]
                 covar_data = covar_data[table(covar_data$LOCATION_CODE)[as.character(covar_data$LOCATION_CODE)] == 4,]
-
         }
 
         mod = lightgbm(data = as.matrix(covar_data[,unique(rast_reduce$var_scale)]),

@@ -14,7 +14,7 @@ rast_df = data.frame(read_excel("data_input/HJA variables_final.xlsx", na="NA"))
 rast_df = rast_df[! rast_df$Variable %in% c("PC1","PC2"),]
 rast_df$Variable_color = c(colorRampPalette(brewer.pal(9,"Greens"))(table(rast_df$Group)["Vegetation"]),
                            brewer.pal(9,"Blues")[9],
-                           brewer.pal(table(rast_df$Group)["Microtopography"],"YlOrBr"))
+                           brewer.pal(6,"YlOrBr")[(6-table(rast_df$Group)["Microtopography"]+1):6])
 
 ############################## CV w/ plot (could do for some other variables too, e.g., sd across years)
 
@@ -48,7 +48,8 @@ pred$response_long = factor(pred$response, levels=c("value","delta_metrics"),
 
 # https://stats.stackexchange.com/questions/228540/how-to-calculate-out-of-sample-r-squared
 stats = do.call("rbind", lapply(split(pred, paste(pred$response,pred$var)), function(df){
-        R2 = formatC(round(1 - sum((df$obs - df$pred)^2) / sum((df$obs - mean(df$obs))^2),2), format='f', digits=2)
+        R2 = max(0, round(1 - sum((df$obs - df$pred)^2) / sum((df$obs - mean(df$obs))^2),2))
+        R2 = formatC(R2, format='f', digits=2)
         MAE = formatC(round(mean(abs(df$obs - df$pred)),2), format='f', digits=2)
         out = df[1,]
         out$lab = paste0("' '*R^2*': '*", R2, "*', MAE: '*", MAE)
@@ -149,7 +150,6 @@ pred_mat$mod_list = lapply(1:nrow(pred_mat), function(i){
                 learning_rate = 1,
                 objective = "quantile",
                 alpha=quantile,
-                # alpha = ifelse(var == "GDD_winter_5", 0.1, 0.9),
                 nrounds = 25,
                 nthread = 8)
         return(mod)
@@ -230,13 +230,11 @@ dev.off()
 
 # 90% quantile only
 rel_inf_agg_scale = aggregate(value ~ temp_var + Variable + Group, FUN=sum, data=rel_inf[rel_inf$quantile == 0.9,])
-rel_inf_agg_scale$Variable = factor(rel_inf_agg_scale$Variable, levels=rast_df$Variable[c(1:15,17:21,16)])
-rel_inf_agg_scale$Variable_text = as.character(rel_inf_agg_scale$Variable)
-rel_inf_agg_scale$Variable_text[rel_inf_agg_scale$value < 2.5] = ""
-rel_inf_agg_scale$temp_var = factor(rel_inf_agg_scale$temp_var, levels=unique(rel_inf_agg_scale$temp_var))
 rel_inf_agg_scale$Variable = factor(rel_inf_agg_scale$Variable, levels=rast_df$Variable)
+rel_inf_agg_scale$Variable_text = as.character(rel_inf_agg_scale$Variable)
 rel_inf_agg_scale$Variable_text = format_names(as.character(rel_inf_agg_scale$Variable))
 rel_inf_agg_scale$Variable_text[rel_inf_agg_scale$value < 2.5] = ""
+rel_inf_agg_scale$temp_var = factor(rel_inf_agg_scale$temp_var, levels=unique(rel_inf_agg_scale$temp_var))
 
 p = ggplot(rel_inf_agg_scale, aes(x=temp_var,y=value,fill=Variable)) +
         geom_bar(stat="identity", show.legend=FALSE) +
@@ -264,6 +262,6 @@ print(p)
 dev.off()
 
 df = aggregate(value ~ Group + temp_var, FUN=sum, data=rel_inf[rel_inf$quantile == 0.9,]) # paper text
-df = df[order(df$value, decreasing=TRUE),]
-split(df, df$Group)
+df = df[order(df$Group, df$value, decreasing=TRUE),]
+write.csv(df, "output/main_models.csv", row.names=FALSE)
 

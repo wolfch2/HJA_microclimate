@@ -28,7 +28,7 @@ missing_min = function(x, n_days, missing_frac=4/5){
         return(out)
 }
 
-T_custom_metrics = function(sitedata, missing_frac = 4/5){ # see StreamThermal package for input format
+T_custom_metrics = function(sitedata, missing_GDD = 1, missing_other = 4/5){ # see StreamThermal package for input format
         sitedata = separate(sitedata, "Date", c("Year", "Month", "Day"), sep = "-")
         is_leap = ((as.numeric(sitedata$Year)[1] %% 4) == 0) & # divis. by 4 and not "a centemnial not divis by 400" 
                 ! ((as.numeric(sitedata$Year)[1] %% 100) == 0 & (as.numeric(sitedata$Year)[1] %% 400) != 0)
@@ -37,17 +37,17 @@ T_custom_metrics = function(sitedata, missing_frac = 4/5){ # see StreamThermal p
         # calculate raw metrics
         GDD_winter_5 = sum(pmax((sitedata$MaxT + sitedata$MinT)/2 - 5, 0)[sitedata$Month <= 3])
         # change to NA if we exceed missing_frag missing days
-        if(sum(sitedata$Month <= 3) < missing_frac * winter_days) GDD_winter_5=NA
+        if(sum(sitedata$Month <= 3) < missing_GDD * winter_days) GDD_winter_5=NA
         # rescale to 90 days (winter, no leapyear) or 365 days (annual, no leapyear)
-        GDD_winter_5 = GDD_winter_5 * 90 / sum(sitedata$Month <= 3)
+        # GDD_winter_5 = GDD_winter_5 * 90 / sum(sitedata$Month <= 3)
         #
         out = data.frame(SiteInfo=sitedata$SiteInfo[1], # max daily mean looks better than mean daily max (maybe mean daily max is getting thrown off more by errors?)
-                         Jul_Sep_mean_max=missing_mean(sitedata$MaxT[as.numeric(sitedata$Month) %in% 7:9],sum(monthdays(7:9)),missing_frac),
-                         Jul_Sep_mean_mean=missing_mean(sitedata$MeanT[as.numeric(sitedata$Month) %in% 7:9],sum(monthdays(7:9)),missing_frac),
+                         Jul_Sep_mean_max=missing_mean(sitedata$MaxT[as.numeric(sitedata$Month) %in% 7:9],sum(monthdays(7:9)),missing_other),
+                         Jul_Sep_mean_mean=missing_mean(sitedata$MeanT[as.numeric(sitedata$Month) %in% 7:9],sum(monthdays(7:9)),missing_other),
                          GDD_winter_5=GDD_winter_5,
-                         Apr_Jun_mean_max=missing_mean(sitedata$MaxT[as.numeric(sitedata$Month) %in% 4:6],sum(monthdays(4:6)),missing_frac),
-                         Apr_Jun_mean_mean=missing_mean(sitedata$MeanT[as.numeric(sitedata$Month) %in% 4:6],sum(monthdays(4:6)),missing_frac),                         
-                         Apr_Jun_mean_min=missing_mean(sitedata$MinT[as.numeric(sitedata$Month) %in% 4:6],sum(monthdays(4:6)),missing_frac),
+                         Apr_Jun_mean_max=missing_mean(sitedata$MaxT[as.numeric(sitedata$Month) %in% 4:6],sum(monthdays(4:6)),missing_other),
+                         Apr_Jun_mean_mean=missing_mean(sitedata$MeanT[as.numeric(sitedata$Month) %in% 4:6],sum(monthdays(4:6)),missing_other),                         
+                         Apr_Jun_mean_min=missing_mean(sitedata$MinT[as.numeric(sitedata$Month) %in% 4:6],sum(monthdays(4:6)),missing_other),
                          stringsAsFactors=FALSE)
         return(out)
 }
