@@ -15,7 +15,7 @@ temp$min = as.numeric(ma(temp$tmmn, 30))
 temp_long = melt(temp, measure.vars=c("max","min"))
 temp_long$gp = paste(temp_long$Year, temp_long$variable)
 
-p = ggplot(temp_long, aes(x=yday,y=value-273.15,color=Year,group=gp)) +
+p = ggplot(temp_long, aes(x=yday,y=value,color=Year,group=gp)) +
   geom_line() +
   scale_color_gradientn(colors=rev(brewer.pal(11,"Spectral"))) +
   theme_bw() +

@@ -1,1 +1,3 @@
 # HJA_microclimate
+
+Code for analysis of the temporal consistency of microrefugia in the HJ Andrews forest.  All of the input data (described in the paper methods) should be placed in the data_input folder, and the scripts can then be executed by running "runner.R". The input data are from the publicy available sources listed in the methods. The dataset "GRIDMET_reduce.csv" can be obtained directly or built using the Google Earth Engine javascript file "build_gridMET.js".
