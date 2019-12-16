@@ -87,14 +87,14 @@ sites$year = stand_year$YR_ORIGIN[as.numeric(st_intersects(
         stand_year))]
 sites$year[sites$year == 0] = NA 
 
-p1 = ggplot(sites, aes(x=PC1, y=PC2, color=plantation, alpha=year)) +
+p1 = ggplot(sites, aes(x=rescale(PC1), y=rescale(PC2), color=plantation, alpha=year)) +
         geom_point(size=2) +
         scale_alpha_continuous(guide=guide_legend(title=NULL,order=2), range=c(1,0.25)) +
         geom_density_2d(alpha=0.35, show.legend=FALSE) +
         scale_color_manual(values=brewer.pal(3,"Set1")[3:2],
                            guide=guide_legend(title=NULL, order=1)) +
 theme_bw() +
-expand_limits(y=min(sites$PC2,na.rm=T)-0.8) +
+expand_limits(y=-0.17) +
 theme(axis.text=element_text(color="black"),
       axis.ticks=element_line(color="black"),
       panel.border=element_rect(color="black"),
@@ -148,7 +148,10 @@ scale_x_continuous(breaks=0:30)
 rast_pts_PC1 = data.frame(rasterToPoints(PC1))
 colnames(rast_pts_PC1) = c('x','y','value')
 
-p_PC1 = ggplot(data=rast_pts_PC1,aes(x=x,y=y,fill=value)) +
+PC1_min = min(sites$PC1,na.rm=TRUE); PC1_max = max(sites$PC1,na.rm=TRUE);
+PC2_min = min(sites$PC2,na.rm=TRUE); PC2_max = max(sites$PC2,na.rm=TRUE);
+
+p_PC1 = ggplot(data=rast_pts_PC1,aes(x=x,y=y,fill=(value-PC1_min)/(PC1_max - PC1_min))) +
         geom_raster() +
         coord_equal() +
         scale_fill_gradientn(colors=brewer.pal(9,"YlGn"),
@@ -168,8 +171,8 @@ geom_point(data=sites, aes(x=X,y=Y,fill=NULL,), color="black", shape=20, size=1.
 rast_pts_PC2 = data.frame(rasterToPoints(PC2))
 colnames(rast_pts_PC2) = c('x','y','value')
 
-p_PC2 = ggplot(data=rast_pts_PC2,aes(x=x,y=y,fill=value)) +
-        geom_raster() + #alpha=0.5) +
+p_PC2 = ggplot(data=rast_pts_PC2,aes(x=x,y=y,fill=(value-PC2_min)/(PC2_max - PC2_min))) +
+        geom_raster() +
         coord_equal() +
         scale_fill_gradientn(colors=brewer.pal(9,"YlGn"),
                              guide=guide_colorbar(title="PC2")) +
