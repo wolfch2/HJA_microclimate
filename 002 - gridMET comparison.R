@@ -30,7 +30,7 @@ p = ggplot(temp_long, aes(x=yday,y=value,color=Year,group=gp)) +
 
 ################################ join w/ VANMET
 
-weather = read.csv("data_input/MS00101_v8.csv", as.is=TRUE)
+weather = read.csv("data_input/MS00101_v9.csv", as.is=TRUE)
 table(weather$SITECODE, weather$HEIGHT)
 weather = weather[weather$HEIGHT == 450 & weather$SITECODE == "VANMET",]
 weather = data.table(weather)[ , .(AIRTEMP_MIN_DAY = mean(AIRTEMP_MIN_DAY, na.rm=TRUE),

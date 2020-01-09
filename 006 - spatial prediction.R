@@ -55,6 +55,10 @@ pred_rast_list = foreach(i=1:nrow(pred_mat)) %do%{  # startup is slow since pred
         return(out)
 }
 
+pbsapply(unique(pred_mat$var), function(var){ # check correlations
+  cor(na.omit(as.matrix(stack(pred_rast_list[which(pred_mat$var == var)]))))[1,2]
+})
+
 ############################## plot unadjusted
 
 temps = readRDS("data_processed/temperature_metrics.RDS")

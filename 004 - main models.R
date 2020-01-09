@@ -46,6 +46,16 @@ pred = foreach(arg_row=1:nrow(args_mat), .combine="rbind") %dopar%{
 pred$response_long = factor(pred$response, levels=c("value","delta_metrics"),
                            labels=c("Unadjusted","Relative to free-air"))
 
+pred %>%
+    filter(response == "value") %>%
+    dplyr::select(-obs, -response, -response_long) %>%
+    spread("year", "pred") %>%
+    dplyr::select(-site) %>%
+    split(.$var) %>%
+    map(dplyr::select, -var) %>%
+    map(cor, use="pairwise.complete.obs", method="spearman") %>%
+    map(min, na.rm=TRUE) # check year-year correlations (for paper text)
+
 # https://stats.stackexchange.com/questions/228540/how-to-calculate-out-of-sample-r-squared
 stats = do.call("rbind", lapply(split(pred, paste(pred$response,pred$var)), function(df){
         R2 = max(0, round(1 - sum((df$obs - df$pred)^2) / sum((df$obs - mean(df$obs))^2),2))
