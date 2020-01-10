@@ -46,15 +46,46 @@ pred = foreach(arg_row=1:nrow(args_mat), .combine="rbind") %dopar%{
 pred$response_long = factor(pred$response, levels=c("value","delta_metrics"),
                            labels=c("Unadjusted","Relative to free-air"))
 
+############################## year-year correlations (for paper text)
+
 pred %>%
-    filter(response == "value") %>%
-    dplyr::select(-obs, -response, -response_long) %>%
-    spread("year", "pred") %>%
-    dplyr::select(-site) %>%
-    split(.$var) %>%
-    map(dplyr::select, -var) %>%
-    map(cor, use="pairwise.complete.obs", method="spearman") %>%
-    map(min, na.rm=TRUE) # check year-year correlations (for paper text)
+  filter(response == "value") %>%
+  dplyr::select(-obs, -response, -response_long) %>%
+  spread("year", "pred") %>%
+  dplyr::select(-site) %>%
+  split(.$var) %>%
+  map(dplyr::select, -var) %>%
+  map(cor, use="pairwise.complete.obs", method="spearman") %>%
+  map(min, na.rm=TRUE)
+
+pred %>%
+  filter(response == "value") %>%
+  dplyr::select(-obs, -response, -response_long) %>%
+  spread("year", "pred") %>%
+  dplyr::select(-site) %>%
+  split(.$var) %>%
+  map(dplyr::select, -var) %>%
+  map(cor, use="pairwise.complete.obs", method="spearman") %>%
+  map(remove_diag) %>%
+  melt %>%
+  select(value) %>%
+  summarise(mean = mean(value,na.rm=TRUE),
+            median = median(value,na.rm=TRUE),
+            total = sum(! is.na(value)))
+  
+
+pred %>%
+  filter(response == "value") %>%
+  dplyr::select(-obs, -response, -response_long) %>%
+  spread("year", "pred") %>%
+  dplyr::select(-site) %>%
+  split(.$var) %>%
+  map(dplyr::select, -var) %>%
+  map(cor, use="pairwise.complete.obs", method="spearman") %>%
+  map(remove_diag) %>%
+  map(mean, na.rm=TRUE) %>%
+  unlist %>%
+  sort
 
 # https://stats.stackexchange.com/questions/228540/how-to-calculate-out-of-sample-r-squared
 stats = do.call("rbind", lapply(split(pred, paste(pred$response,pred$var)), function(df){
@@ -163,6 +194,29 @@ pred_mat$mod_list = lapply(1:nrow(pred_mat), function(i){
                 nrounds = 25,
                 nthread = 8)
         return(mod)
+})
+
+############################## pseudo-R2 (paper text)
+
+# https://stats.stackexchange.com/questions/129200/r-squared-in-quantile-regression
+lapply(unique(pred_mat$var), function(var){
+  data_var = data[data$variable==var,]
+  covar_data = data_var
+  mod_full = lightgbm(data = as.matrix(covar_data[,unique(rast_reduce$var_scale)]),
+                      label = covar_data$value,
+                      num_leaves = round(0.75*2^5),
+                      learning_rate = 1,
+                      objective = "quantile",
+                      alpha=0.9,
+                      nrounds = 25,
+                      nthread = 8)
+  y_hat = predict(mod_full, data=as.matrix(covar_data[,unique(rast_reduce$var_scale)]))
+  y_bar = rep(quantile(covar_data$value, 0.9), nrow(covar_data))
+  tau = 0.9
+  y = covar_data$value
+  out = sum(ifelse(y >= y_hat, tau*abs(y-y_hat), (1-tau)*abs(y-y_hat)))/sum(ifelse(y >= y_bar, tau*abs(y-y_bar), (1-tau)*abs(y-y_bar)))
+  names(out) = var
+  return(round(out,3))
 })
 
 ############################## imp. plots for other vars...

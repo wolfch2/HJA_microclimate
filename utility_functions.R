@@ -62,3 +62,8 @@ format_names = function(names){
 	), warn_missing = TRUE)
 }
 
+remove_diag = function(mat){
+        diag(mat) = NA
+        return(mat)
+}
+
