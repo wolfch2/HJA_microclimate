@@ -270,7 +270,7 @@ smoothed_stack = stack(lapply(names(rast_stack), function(rast_name){
                                       return(out)
                                 }))
 
-######################################## map of predictors (5 m res.)
+######################################## map of predictors
 
 stack = readRDS("data_processed/microtopography/10")
 pred_mask = readRDS("data_processed/pred_mask.RDS")

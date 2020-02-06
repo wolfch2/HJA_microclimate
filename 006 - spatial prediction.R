@@ -101,17 +101,75 @@ plot_list = lapply(sort(unique(pred_mat$var))[c(1:3,5:6,4)], function(var){
             expand_limits(y=min(sites$Y) - 300)
 
         if(var == "Apr_Jun_mean_max")
-                p = p + annotation_scale(location = "bl", pad_x=unit(0.5,"in"), width_hint=0.25, height=unit(0.2,"lines"), text_cex=0.5)
+                p = p + annotation_scale(location = "bl", pad_x=unit(0.5,"in"), pad_y=unit(0.05, "in"), width_hint=0.25, height=unit(0.2,"lines"), text_cex=0.5)
 
         return(p)
 })
 
-png("output/quantile/pred_map_90.png", width=6-0.2, height=7.75/6*2, units="in", res=400)
-print(do.call("grid.arrange", c(plot_list, nrow=2)))
+elevation = aggregate(predictors[["ElevationXX5"]], 2)
+elevation_pts <- data.frame(rasterToPoints(elevation))
+colnames(elevation_pts) <- c('x','y','value')
+sites_var = sites[! duplicated(sites$LOCATION_CODE),]
+
+p_elev = ggplot(data=elevation_pts,aes(x=x,y=y,fill=value)) +
+           geom_raster() +
+           coord_equal() +
+           geom_point(data=sites_var, aes(x=X,y=Y,fill=NULL), shape=20, size=0.5, stroke=0) +
+           scale_fill_gradientn(colors=rev(brewer.pal(11,"RdYlBu")),
+                                breaks=pretty_breaks(n=3),                                
+                                guide=guide_colorbar(title="Elevation (m)")) +
+           theme_bw() +
+           theme(axis.ticks=element_blank(),
+                      axis.title=element_blank(),
+                      axis.text=element_blank(),
+                      panel.grid.major = element_line(colour="transparent"),
+                      panel.grid.minor = element_line(colour="transparent"),
+                      plot.margin=margin(0,1,0,0),
+                      legend.position=c(0.02,0.98),
+                      legend.justification=0:1,
+                      legend.title=element_text(size=6.5),
+                      legend.text=element_text(size=6.5),
+                      legend.key.height=unit(0.4,"lines"),
+                      legend.key.width=unit(0.6,"lines"),
+                      legend.background=element_rect(fill=NA)) +
+            expand_limits(y=min(sites$Y) - 300)
+
+PC1 = aggregate(predictors[["PC1XX10"]], 2)
+PC1_pts <- data.frame(rasterToPoints(PC1))
+colnames(PC1_pts) <- c('x','y','value')
+sites_var = sites[! duplicated(sites$LOCATION_CODE),]
+
+p_PC1 = ggplot(data=PC1_pts,aes(x=x,y=y,fill=value)) +
+           geom_raster() +
+           coord_equal() +
+           geom_point(data=sites_var, aes(x=X,y=Y,fill=NULL), shape=20, size=0.5, stroke=0) +
+           scale_fill_gradientn(colors=brewer.pal(9,"YlGn"),
+                                breaks=pretty_breaks(n=3),                                
+                                guide=guide_colorbar(title="Forest structure (PC1)")) +
+           theme_bw() +
+           theme(axis.ticks=element_blank(),
+                      axis.title=element_blank(),
+                      axis.text=element_blank(),
+                      panel.grid.major = element_line(colour="transparent"),
+                      panel.grid.minor = element_line(colour="transparent"),
+                      plot.margin=margin(0,1,0,0),
+                      legend.position=c(0.02,0.98),
+                      legend.justification=0:1,
+                      legend.title=element_text(size=6.5),
+                      legend.text=element_text(size=6.5),
+                      legend.key.height=unit(0.4,"lines"),
+                      legend.key.width=unit(0.6,"lines"),
+                      legend.background=element_rect(fill=NA)) +
+            expand_limits(y=min(sites$Y) - 300)
+
+pred_plot = plot_grid(plot_grid(plotlist=plot_list, nrow=2), plot_grid(p_elev, p_PC1, nrow=1), nrow=2, rel_heights=c(1,0.8))
+
+png("output/quantile/pred_map_90.png", width=6-0.2, height=7/4*7.75/6*2, units="in", res=300)
+plot(pred_plot)
 dev.off()
 
-pdf("output/quantile/pred_map_90.pdf", width=6-0.2, height=7.75/6*2)
-print(do.call("grid.arrange", c(plot_list, nrow=2)))
+pdf("output/quantile/pred_map_90.pdf", width=6-0.2, height=7/4*7.75/6*2)
+plot(pred_plot)
 dev.off()
 
 ############################## plot adjusted

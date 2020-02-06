@@ -73,7 +73,6 @@ pred %>%
             median = median(value,na.rm=TRUE),
             total = sum(! is.na(value)))
   
-
 pred %>%
   filter(response == "value") %>%
   dplyr::select(-obs, -response, -response_long) %>%

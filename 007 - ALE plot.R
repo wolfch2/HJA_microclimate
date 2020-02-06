@@ -78,23 +78,33 @@ p = ggplot(partial_mat[! partial_mat$missing_subset,],
          geom_point(shape=124, size=1) +
          facet_grid(var ~ response_long, scales="free") +
          scale_color_manual(values = rast_df$Variable_color,
-                            guide=guide_legend(ncol=1,title=NULL)) +   
-        geom_hline(yintercept=0, linetype="dashed") +
-         theme_bw() +
+                            guide=guide_legend(nrow=2,title=NULL)) +
+         geom_hline(yintercept=0, linetype="dashed") +
+         theme_bw() + 
          ylab("Change in average prediction") +
          scale_x_continuous(breaks=c(0,0.5,1)) +
          xlab("Scaled predictor") +
          theme(axis.ticks=element_line(color="black"),
                axis.text=element_text(color="black"),
+               legend.direction="horizontal",
                panel.border=element_rect(color="black"),
-               panel.spacing.x=unit(0.6,"lines"))
+               panel.spacing.x=unit(0.6,"lines"),
+               legend.position="bottom")
+
+OG = rasterGrob(readPNG("data_input/OG_low.png"), interpolate=TRUE)
+PL = rasterGrob(readPNG("data_input/PL_low.png"), interpolate=TRUE)
+all = plot_grid(p, NULL, plot_grid(PL, NULL, OG, ncol=1, labels=c("B","","C"), hjust=1.2, rel_heights=c(1,0.075,1)), labels="A", rel_widths=c(1,0.1,0.65), nrow=1)
 
 png("output/quantile/ALE_plot_all.png", width=7.75, height=7.75, units="in", res=400)
-print(p)
+print(all)
 dev.off()
 
+OG = rasterGrob(readPNG("data_input/OG.png"), interpolate=TRUE)
+PL = rasterGrob(readPNG("data_input/PL.png"), interpolate=TRUE)
+all = plot_grid(p, NULL, plot_grid(PL, NULL, OG, ncol=1, labels=c("B","","C"), hjust=1.2, rel_heights=c(1,0.075,1)), labels="A", rel_widths=c(1,0.1,0.65), nrow=1)
+
 pdf("output/quantile/ALE_plot_all.pdf", width=7.75, height=7.75)
-print(p)
+print(all)
 dev.off()
 
 p = ggplot(partial_mat[partial_mat$missing_subset,],
@@ -117,5 +127,4 @@ p = ggplot(partial_mat[partial_mat$missing_subset,],
 png("output/quantile/ALE_plot_missing.png", width=7.75, height=7.75, units="in", res=400)
 print(p)
 dev.off()
-
 

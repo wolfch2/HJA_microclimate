@@ -24,6 +24,7 @@ require(pbapply)
 require(pdist)
 require(pdp) # https://bgreenwell.github.io/pdp/articles/pdp-example-xgboost.html
 require(plyr)
+require(png)
 require(psych)
 require(purrr)
 require(raster)
