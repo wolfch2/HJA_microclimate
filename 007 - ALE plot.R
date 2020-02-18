@@ -88,6 +88,7 @@ p = ggplot(partial_mat[! partial_mat$missing_subset,],
                axis.text=element_text(color="black"),
                legend.direction="horizontal",
                panel.border=element_rect(color="black"),
+               strip.text.y=element_text(size=8),
                panel.spacing.x=unit(0.6,"lines"),
                legend.position="bottom")
 
