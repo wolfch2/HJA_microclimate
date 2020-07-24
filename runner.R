@@ -43,14 +43,12 @@ require(tidyverse)
 require(unixtools) # devtools::install_github("s-u/unixtools")
 require(vegan)
 require(velox)
-require(xgboost) # https://xgboost.readthedocs.io/en/latest/R-package/xgboostPresentation.html
-require(xgboostExplainer) # devtools::install_github("AppliedDataSciencePartners/xgboostExplainer")
 require(R.devices) # https://www.jottr.org/2018/07/21/suppressgraphics/
 
 N_CORE_LARGE = 24 # max. number of cores to use
 N_CORE_SMALL = 6 # number of cores for memmory intensive tasks
 
-setwd("/home/chrisgraywolf/analysis_desktop/Andrews2")
+setwd("/home/chrisgraywolf/shared/analysis/Andrews2")
 
 set.tempdir("temp")
 setPaths(cachePath="temp", inputPath="temp", modulePath="temp", outputPath="temp", silent = FALSE)
@@ -66,7 +64,7 @@ source("scripts - Andrews2/utility_functions.R")
 #source("scripts - Andrews2/001 - raster setup.R") # 20 min
 #source("scripts - Andrews2/002 - gridMET comparison.R", encoding = "Latin1") # 7 sec
 #source("scripts - Andrews2/003 - set up temperature.R") # 27 sec
-#source("scripts - Andrews2/004 - main models.R") # 45 sec
+source("scripts - Andrews2/004 - main models.R") # 45 sec
 #source("scripts - Andrews2/005 - sd models.R") # 1 sec
 #source("scripts - Andrews2/006 - spatial prediction.R") # 2 min
 #source("scripts - Andrews2/007 - ALE plot.R") # 4 sec

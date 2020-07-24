@@ -92,16 +92,16 @@ p = ggplot(partial_mat[! partial_mat$missing_subset,],
                panel.spacing.x=unit(0.6,"lines"),
                legend.position="bottom")
 
-OG = rasterGrob(readPNG("data_input/OG_low.png"), interpolate=TRUE)
-PL = rasterGrob(readPNG("data_input/PL_low.png"), interpolate=TRUE)
+OG = rasterGrob(readPNG("data_input/OG_med.png"), interpolate=TRUE)
+PL = rasterGrob(readPNG("data_input/PL_med.png"), interpolate=TRUE)
 all = plot_grid(p, NULL, plot_grid(PL, NULL, OG, ncol=1, labels=c("B","","C"), hjust=1.2, rel_heights=c(1,0.075,1)), labels="A", rel_widths=c(1,0.1,0.65), nrow=1)
 
-png("output/quantile/ALE_plot_all.png", width=7.75, height=7.75, units="in", res=400)
+png("output/quantile/ALE_plot_all.png", width=7.75, height=7.75, units="in", res=250)
 print(all)
 dev.off()
 
-OG = rasterGrob(readPNG("data_input/OG.png"), interpolate=TRUE)
-PL = rasterGrob(readPNG("data_input/PL.png"), interpolate=TRUE)
+OG = rasterGrob(readPNG("data_input/OG_med.png"), interpolate=TRUE)
+PL = rasterGrob(readPNG("data_input/PL_med.png"), interpolate=TRUE)
 all = plot_grid(p, NULL, plot_grid(PL, NULL, OG, ncol=1, labels=c("B","","C"), hjust=1.2, rel_heights=c(1,0.075,1)), labels="A", rel_widths=c(1,0.1,0.65), nrow=1)
 
 pdf("output/quantile/ALE_plot_all.pdf", width=7.75, height=7.75)

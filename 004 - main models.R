@@ -32,11 +32,16 @@ pred = foreach(arg_row=1:nrow(args_mat), .combine="rbind") %dopar%{
 
         pred_CV = foreach(i = 1:length(data_var_split), .combine="rbind") %do% {
                 print(i)
-                test_data = data_var_split[[i]] # for annual metrics, and spatial CV, test_data will just have one row
+                test_data = data_var_split[[i]]
                 train_data = data_var[data_var$Year != test_data$Year[1],]
-                mod = xgboost(data = as.matrix(train_data[,unique(rast_reduce$var_scale)]), label = train_data$value,
-                      booster = "gbtree",objective = "reg:linear", nrounds=25,max_depth=5, verbose=0, nthread=1)
-                pred = predict(mod, newdata = as.matrix(test_data[,unique(rast_reduce$var_scale)]))
+                mod = lightgbm(data = as.matrix(train_data[,unique(rast_reduce$var_scale)]),
+                        label = train_data$value,
+                        num_leaves = round(0.75*2^5),
+                        learning_rate = 1,
+                        objective = "regression",
+                        nrounds = 25,
+                        nthread = 1)
+                pred = predict(mod, data = as.matrix(test_data[,unique(rast_reduce$var_scale)]))
                 out = data.frame(var=var, obs=test_data$value, pred=pred, year=test_data$Year, site=test_data$LOCATION_CODE,
                                  response=response, stringsAsFactors=FALSE)
         }
@@ -72,7 +77,7 @@ pred %>%
   summarise(mean = mean(value,na.rm=TRUE),
             median = median(value,na.rm=TRUE),
             total = sum(! is.na(value)))
-  
+
 pred %>%
   filter(response == "value") %>%
   dplyr::select(-obs, -response, -response_long) %>%
