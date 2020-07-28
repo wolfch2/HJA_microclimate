@@ -51,7 +51,7 @@ pred = foreach(arg_row=1:nrow(args_mat), .combine="rbind") %dopar%{
 pred$response_long = factor(pred$response, levels=c("value","delta_metrics"),
                            labels=c("Unadjusted","Relative to free-air"))
 
-############################## year-year correlations (for paper text)
+############################## year-year correlations
 
 pred %>%
   filter(response == "value") %>%
@@ -90,6 +90,40 @@ pred %>%
   map(mean, na.rm=TRUE) %>%
   unlist %>%
   sort
+
+plot_data = pred %>%
+  filter(response == "value") %>%
+  dplyr::select(-obs, -response, -response_long) %>%
+  spread("year", "pred") %>%
+  dplyr::select(-site) %>%
+  split(.$var) %>%
+  map(dplyr::select, -var) %>%
+  map(cor, use="pairwise.complete.obs", method="spearman") %>%
+  map(remove_diag) %>%  
+  melt %>%
+  mutate(L1 = format_names(L1))
+
+p = ggplot(na.omit(plot_data), aes(x=Var1, y=Var2, fill=value)) +
+        geom_raster() +
+        coord_fixed() +
+        facet_wrap(~ L1) +
+        scale_fill_gradientn(colors=brewer.pal(11,"Spectral"),
+                             guide=guide_colorbar(title="Correlation")) +
+        theme_bw() +
+        scale_x_continuous(breaks=2009:2018, expand=c(0,0)) +
+        scale_y_continuous(breaks=2009:2018, expand=c(0,0)) +
+        theme_bw() +
+        theme(axis.title=element_blank(),
+              axis.text=element_text(color="black"),
+              axis.ticks=element_line(color="black"),
+              panel.border=element_rect(color="black"),
+              legend.background=element_rect(color="black"))
+
+png("output/rank_cor_plot.png", width=2*7.2, height=2*5, units="in", res=300)
+print(p)
+dev.off()
+
+##############################
 
 # https://stats.stackexchange.com/questions/228540/how-to-calculate-out-of-sample-r-squared
 stats = do.call("rbind", lapply(split(pred, paste(pred$response,pred$var)), function(df){
