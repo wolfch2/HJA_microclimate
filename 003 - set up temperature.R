@@ -152,3 +152,40 @@ png("output/days_map.png", width=6, height=7, units="in", res=300)
 print(p)
 dev.off()
 
+############################## plot example time series
+
+set.seed(0)
+example_sites = data.frame(read_excel("data_input/site_locations.xlsx")) %>%
+        arrange(Plantation) %>%
+        group_by(Plantation) %>%
+        sample_n(4) %>%
+        ungroup %>%
+        inner_join(temperature_metrics) %>%
+        mutate(var = format_names(variable),
+               Plantation = factor(Plantation,
+                                   levels=c(1,0),
+                                   labels=c("Plantation","Mature forest/old growth"))) %>%
+        arrange(Plantation) %>%
+        mutate(POINT = factor(POINT,levels=unique(.$POINT)))
+
+p = ggplot(example_sites, aes(x=Year,y=delta_metrics,color=Plantation,group=POINT)) +
+        geom_point() +
+        geom_line() +
+        facet_grid(var ~ POINT, scales="free_y") +
+                scale_color_manual(values=brewer.pal(3,"Set1")[3:2],
+                           guide=guide_legend(title=NULL, order=1)) +
+        theme_bw() +
+        theme(axis.text=element_text(color="black"),
+              axis.ticks=element_line(color="black"),
+              panel.border=element_rect(color="black"),
+              legend.position="bottom",
+              panel.spacing.x=unit(1.5,"lines"),
+              legend.background=element_rect(color="black")) +
+        ylab("Value relative to free-air") +
+        geom_hline(yintercept=0, linetype="dashed") +
+        scale_x_continuous(breaks=seq(2009,2018,by=3)) +
+        xlab("Year")
+
+png("output/example_ts.png", width=12, height=9, units="in", res=300)
+print(p)
+dev.off()
