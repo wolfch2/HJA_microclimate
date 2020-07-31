@@ -14,7 +14,8 @@ rast_df = data.frame(read_excel("data_input/HJA variables_final.xlsx", na="NA"))
 rast_df = rast_df[! rast_df$Variable %in% c("PC1","PC2"),]
 rast_df$Variable_color = c(colorRampPalette(brewer.pal(9,"Greens"))(table(rast_df$Group)["Vegetation"]),
                            brewer.pal(9,"Blues")[9],
-                           brewer.pal(6,"YlOrBr")[(6-table(rast_df$Group)["Microtopography"]+1):6])
+                           brewer.pal(6,"YlOrBr")[(6-table(rast_df$Group)["Microtopography"]+1):6]) %>%
+                           alpha(0.8)
 
 ############################## regression models for imp. plots etc.
 
@@ -69,6 +70,7 @@ p = ggplot(rel_inf_agg_scale, aes(x=temp_var,y=value,fill=Variable)) +
               axis.ticks=element_line(color="black"),
               panel.border=element_rect(color="black"),
               panel.grid.minor.y=element_blank(),
+              panel.grid.major.x=element_blank(),
               legend.position="bottom",
               legend.key.width=unit(2,"lines"),
               legend.margin=margin(1,1,1,1)) +

@@ -75,7 +75,7 @@ partial_mat$var = format_names(partial_mat$var)
 p = ggplot(partial_mat[! partial_mat$missing_subset,],
                 aes(x=scaled_x,y=yhat,color=variable)) +
          geom_line(size=0.5) +
-         geom_point(shape=124, size=1) +
+         #geom_point(shape=124, size=1) + # optional: vertical tick marks indicating observations
          facet_grid(var ~ response_long, scales="free") +
          scale_color_manual(values = rast_df$Variable_color,
                             guide=guide_legend(nrow=2,title=NULL)) +
@@ -111,7 +111,7 @@ dev.off()
 p = ggplot(partial_mat[partial_mat$missing_subset,],
                 aes(x=scaled_x,y=yhat,color=variable)) +
          geom_line(size=0.5) +
-         geom_point(shape=124, size=1) +
+         #geom_point(shape=124, size=1) + # optional: vertical tick marks indicating observations
          facet_grid(var ~ response_long, scales="free") +
          scale_color_manual(values = rast_df$Variable_color,
                             guide=guide_legend(ncol=1,title=NULL)) +   
