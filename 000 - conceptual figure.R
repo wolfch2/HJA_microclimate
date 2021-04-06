@@ -29,3 +29,22 @@ png("output/conceptual_1.png", width=4.5, height=4.5, res=450, units="in")
 print(p)
 dev.off()
 
+df = expand.grid(mean=seq(1,2,length=100),sd=seq(1,2,length=100))
+df$quan = qnorm(0.9,mean=df$mean,sd=df$sd)
+
+p = ggplot(df, aes(x=mean,y=sd,fill=quan)) +
+    geom_raster() +
+    scale_fill_gradientn(colors=rev(brewer.pal(11,"Spectral")),
+                         guide=guide_colorbar(title="90% quantile")) +
+    scale_x_continuous(expand=c(0,0)) +
+    scale_y_continuous(expand=c(0,0)) +
+    xlab("Mean") +
+    ylab("Standard deviation") +
+    theme(axis.ticks=element_line(color="black"),
+          axis.text=element_text(color="black"),
+          panel.border=element_rect(color="black",fill=NA)) +
+      coord_fixed()
+
+png("output/conceptual_2.png", width=1.2*4.5, height=1.2*3.5, res=450, units="in")
+print(p)
+dev.off()

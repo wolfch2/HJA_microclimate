@@ -82,9 +82,23 @@ GRIDMET$max = GRIDMET$tmmx - 273.15
 
 temperature_merged = merge(temperature, GRIDMET[,c("Date","min","max")], all.x=TRUE, all.y=FALSE, by="Date")
 
-############################## compute annual metrics (two ways: unadjusted and relative to free-air)
+############################## join with VANMET
 
-temp_split = split(temperature_merged,paste(temperature_merged$Year,temperature_merged$LOCATION_CODE))
+weather = read.csv("data_input/MS00101_v9.csv", as.is=TRUE)
+weather = weather[weather$HEIGHT == 450 & weather$SITECODE == "VANMET",]
+weather = data.table(weather)[ , .(min_w = mean(AIRTEMP_MIN_DAY, na.rm=TRUE),
+                                   mean_w = mean(AIRTEMP_MEAN_DAY, na.rm=TRUE),
+                                   max_w = mean(AIRTEMP_MAX_DAY, na.rm=TRUE)), by = .(SITECODE, DATE)]
+weather = na.omit(weather)
+weather$Date = ymd(weather$DATE)
+#range(year(weather$DATE)) # 1987-2016
+#weather = weather[year(weather$DATE) >= 2009,] # optional -- match with our analysis time span
+
+temperature_merged_again = merge(temperature_merged, weather[,c("Date","min_w","mean_w","max_w")], all.x=TRUE, all.y=FALSE, by="Date")
+
+############################## compute annual metrics (three ways: unadjusted, relative to gridMET free-air, and relative to VANMET free-air)
+
+temp_split = split(temperature_merged_again,paste(temperature_merged_again$Year,temperature_merged_again$LOCATION_CODE))
 temperature_metrics = foreach(i=1:length(temp_split)) %dopar% {
         print(i)
         df = temp_split[[i]]
@@ -101,15 +115,24 @@ temperature_metrics = foreach(i=1:length(temp_split)) %dopar% {
                    variable=rownames(temps),
                    value=temps,
                    stringsAsFactors=FALSE)
-        ### 2. compute delta metrics (difference between fine-scale and free-air)
+        ### 2. compute delta metrics (difference between fine-scale and gridMET free-air)
         sitedata_GRIDMET = data.frame(SiteInfo=df$LOCATION_CODE,
                       Date=df$Date,
                       MaxT=df$max, # just use GRIDMET data here...
                       MinT=df$min,
                       MeanT=(df$max + df$min) / 2,
                       stringsAsFactors=FALSE)
-        out$GRIDMET_value = t(T_custom_metrics(sitedata_GRIDMET)[,-1])       
+        out$GRIDMET_value = t(T_custom_metrics(sitedata_GRIDMET)[,-1])
         out$delta_metrics = out$value - out$GRIDMET_value
+        ### 3. compute VANMET delta metrics (difference between fine-scale and VANMET free-air)
+        sitedata_VANMET = data.frame(SiteInfo=df$LOCATION_CODE,
+                      Date=df$Date,
+                      MaxT=df$max_w, # just use GRIDMET data here...
+                      MinT=df$min_w,
+                      MeanT=df$mean_w,
+                      stringsAsFactors=FALSE) %>% na.omit # VANMET has a few missing obs. here and there (which appear as NA)
+        out$VANMET_value = t(T_custom_metrics(sitedata_VANMET)[,-1])
+        out$delta_metrics_VANMET = out$value - out$VANMET_value
         return(out)
 }
 temperature_metrics = data.frame(rbindlist(temperature_metrics))
@@ -119,6 +142,7 @@ table(temperature_metrics$variable, temperature_metrics$Year) # looks fine..
 temperature_metrics$POINT = temperature_metrics$LOCATION_CODE = temperature_metrics$SITECODE = temperature_metrics$site
 
 saveRDS(temperature_metrics, "data_processed/temperature_metrics.RDS")
+temperature_metrics = readRDS("data_processed/temperature_metrics.RDS")
 
 ############################## map # days
 
@@ -154,12 +178,17 @@ dev.off()
 
 ############################## plot example time series
 
-set.seed(0)
+site_obs_count = temperature_metrics %>%
+        group_by(site) %>%
+        summarize(count = n()) %>%
+        arrange(desc(count))
+
 example_sites = data.frame(read_excel("data_input/site_locations.xlsx")) %>%
         arrange(Plantation) %>%
+        merge(site_obs_count, by.x="POINT", by.y="site") %>%
+        arrange(desc(count)) %>%
         group_by(Plantation) %>%
-        sample_n(4) %>%
-        ungroup %>%
+        slice_head(n=4) %>%
         inner_join(temperature_metrics) %>%
         mutate(var = format_names(variable),
                Plantation = factor(Plantation,
@@ -187,5 +216,54 @@ p = ggplot(example_sites, aes(x=Year,y=delta_metrics,color=Plantation,group=POIN
         xlab("Year")
 
 png("output/example_ts.png", width=12, height=9, units="in", res=300)
+print(p)
+dev.off()
+
+############################## compare gridMET and VANMET for our six temperature metrics
+
+df = temperature_metrics %>%
+        filter(! duplicated(paste(Year,variable))) %>% # ignore duplicates (same across sites)
+        na.omit %>%
+        mutate(variable=format_names(variable))
+
+# https://stats.stackexchange.com/questions/228540/how-to-calculate-out-of-sample-r-squared
+stats = do.call("rbind", lapply(split(df, df$variable), function(df_var){
+        r = cor(df_var$GRIDMET_value, df_var$VANMET_value) %>% formatC(format='f', digits=2)
+        b = lm(VANMET_value ~ GRIDMET_value, data=df_var)$coef[2] %>% formatC(format='f', digits=2)
+        out = data.frame(variable=df_var$variable[1],
+                         Year=df_var$Year[1],
+                         lab=paste0("' '*r*': '*", r, "*', '*beta[1]*': '*", b))
+        return(out)
+}))
+df$year = factor(df$Year); stats$year = factor(stats$Year);
+
+dummy = df; dummy$GRIDMET_value = df$VANMET_value; dummy$VANMET_value = df$GRIDMET_value;
+
+###
+
+p = ggplot(df, aes(x=GRIDMET_value, y=VANMET_value)) +
+        geom_smooth(method="lm") +
+        geom_point(aes(color=year)) +
+        facet_wrap(~ variable, scales="free") +
+        geom_point(data=dummy, color="#FFFFFF00") +
+        geom_abline(intercept=0,slope=1,linetype="dashed") +
+        scale_x_continuous(breaks= pretty_breaks(4)) +
+        scale_y_continuous(breaks= pretty_breaks(4)) +
+        scale_color_manual(values = colorRampPalette(brewer.pal(9, "Set1"))(length(unique(df$year))),
+                           guide=guide_legend(title=NULL, nrow=1,
+                                              override.aes = list(size = 1.5))) +
+        geom_text(data=stats, aes(label=lab),
+                  x=Inf, y=-Inf, color="black", vjust=-1.15, hjust=1.05, size=2.5, parse=TRUE) +
+        theme_bw() +
+        theme(axis.text=element_text(color="black"),
+              axis.ticks=element_line(color="black"),
+              axis.title=element_blank(),
+              panel.border=element_rect(color="black"),
+              legend.background=element_rect(color="black"),
+              legend.position="bottom",
+              aspect.ratio = 1,
+              plot.title = element_text(hjust = 0.5)) 
+
+png("output/gridMET_VANMET_metrics.png", width=8.5, height=6, units="in", res=300)
 print(p)
 dev.off()
