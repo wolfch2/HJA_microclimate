@@ -123,7 +123,7 @@ plot_list = lapply(sort(unique(pred_mat$var))[c(1:3,5:6,4)], function(var){
                                  values=c(seq(0,0.8,length=1e3),seq(0.8,1,length=1e3)),
                                  limits=c(0,1),
                                  breaks=seq(0,1,by=0.2),
-                                 guide=guide_colorbar(title="Microrefugial\nsuitability", # "                "
+                                 guide=guide_colorbar(title="Microrefugial                \nsuitability", # "                "
                                                            nbin=1000)) +
            theme_bw() +
            map_theme +

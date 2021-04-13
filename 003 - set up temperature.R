@@ -219,6 +219,40 @@ png("output/example_ts.png", width=12, height=9, units="in", res=300)
 print(p)
 dev.off()
 
+############################## plot example annual mean time series (illustrating buffering effect)
+
+annual_means = temperature_merged_again[ , .(micro = mean(AIRTEMP_MEAN_DAY, na.rm=TRUE),
+                                             macro = mean(mean_w, na.rm=TRUE)),
+                                             by = .(LOCATION_CODE, Year)]
+
+sel = c(217, 234) # highest elevation sites (all above 1500 meters)
+
+annual_means_sel = data.frame(annual_means) %>%
+        filter(LOCATION_CODE %in% sel) %>%
+        mutate(site=factor(LOCATION_CODE,levels=c(217,234),labels=c("Site A", "Site B")))
+
+free_air = annual_means_sel[! duplicated(annual_means_sel$Year),]
+
+df = rbind(data.frame(Year=free_air$Year, value=free_air$macro, site="Free-air"),
+           data.frame(Year=annual_means_sel$Year, value=annual_means_sel$micro, site=annual_means_sel$site))
+
+p = ggplot(df, aes(x=Year, y=value, color=site, size=site)) +
+        geom_point() +
+        geom_line() +
+        theme_bw() +
+        scale_size_manual(values=c(2,1,1), guide=guide_legend(title=NULL)) +
+        scale_color_manual(values=c("black",brewer.pal(3,"Set1")[1:2]), guide=guide_legend(title=NULL)) +
+        theme(axis.text=element_text(color="black"),
+              axis.ticks=element_line(color="black"),
+              panel.border=element_rect(color="black")) +
+        ylab("Mean annual temperature") +
+        scale_x_continuous(breaks=seq(2009,2018,by=1)) +
+        xlab("Year")
+
+png("output/simple_coupling.png", width=7, height=7, units="in", res=300)
+print(p)
+dev.off()
+
 ############################## compare gridMET and VANMET for our six temperature metrics
 
 df = temperature_metrics %>%
@@ -260,10 +294,16 @@ p = ggplot(df, aes(x=GRIDMET_value, y=VANMET_value)) +
               axis.title=element_blank(),
               panel.border=element_rect(color="black"),
               legend.background=element_rect(color="black"),
-              legend.position="bottom",
+              legend.position="none",
               aspect.ratio = 1,
               plot.title = element_text(hjust = 0.5)) 
 
-png("output/gridMET_VANMET_metrics.png", width=8.5, height=6, units="in", res=300)
-print(p)
+leg = get_legend(p + theme(legend.position="bottom"))
+
+y.grob <- textGrob("   VANMET free-air temperature", gp=gpar(fontsize=12), rot=90)
+x.grob <- textGrob("     gridMET free-air temperature", gp=gpar(fontsize=12))
+p_top_all = arrangeGrob(p, left = y.grob, bottom = x.grob)
+
+png("output/gridMET_VANMET_metrics.png", width=8.5, height=7, units="in", res=300)
+print(plot_grid(p_top_all, leg, rel_heights=c(1,0.1), nrow=2))
 dev.off()
