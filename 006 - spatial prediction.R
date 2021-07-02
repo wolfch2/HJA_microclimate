@@ -18,6 +18,7 @@ data_sd = merge(temp_sd, rast_spread, by="site")
 predictors = readRDS("data_processed/predictors.RDS")
 predictor_mat = as.matrix(predictors)
 pred_mask = readRDS("data_processed/pred_mask.RDS")
+(total_area = sum(pred_mask[] %in% 1) * 5^2 / 1000^2) # for paper text "% microrefugia area" calculations
 
 ############################## fit models!
 
@@ -102,10 +103,10 @@ map_theme = theme(axis.ticks=element_blank(),
                       legend.background=element_rect(fill=NA)) 
 
 plot_list = lapply(sort(unique(pred_mat$var))[c(1:3,5:6,4)], function(var){
-        print(var)
         rast_value = pred_rast_list[[which(pred_mat$var == var & pred_mat$response == "value" & pred_mat$type == "quantile")]]
         rast_offset = pred_rast_list[[which(pred_mat$var == var & pred_mat$response == "delta_metrics" & pred_mat$type == "quantile")]]
         rast_micro = setValues(rast_value, 1 - pmax(ecdf(rast_value[])(rast_value[]), ecdf(rast_offset[])(rast_offset[])))
+        print(paste0(var, " area: ", sum(rast_micro[] >= 0.8, na.rm=TRUE)*5^2/1000^2)) # for paper text
         rast = aggregate(rast_micro, 2) # optional - aggregate to reduce file size
 
         rast_pts <- data.frame(rasterToPoints(rast))
@@ -149,7 +150,7 @@ p_elev = ggplot(data=elevation_pts,aes(x=x,y=y,fill=value)) +
            geom_raster() +
            coord_equal() +
            geom_point(data=sites_var, aes(x=X,y=Y,fill=NULL), shape=20, size=0.5, stroke=0) +
-           scale_fill_gradientn(colors=rev(brewer.pal(11,"RdYlBu")),
+           scale_fill_gradientn(colors=brewer.pal(11,"RdYlBu"),
                                 breaks=pretty_breaks(n=3),                                
                                 guide=guide_colorbar(title="Elevation (m)")) +
            theme_bw() +
@@ -161,7 +162,13 @@ PC1_pts <- data.frame(rasterToPoints(PC1))
 colnames(PC1_pts) <- c('x','y','value')
 sites_var = sites[! duplicated(sites$LOCATION_CODE),]
 
-p_PC1 = ggplot(data=PC1_pts,aes(x=x,y=y,fill=value)) +
+plantations = read_sf("data_input/harvest_layer/harvest.shp") %>%
+        filter(YR_ORIGIN >= 1954)
+
+sites = readRDS("data_processed/sites.RDS")
+PC1_min = min(sites$PC1,na.rm=TRUE); PC1_max = max(sites$PC1,na.rm=TRUE);
+
+p_PC1 = ggplot(data=PC1_pts,aes(x=x,y=y,fill=(value-PC1_min)/(PC1_max - PC1_min))) +
            geom_raster() +
            coord_equal() +
            geom_point(data=sites_var, aes(x=X,y=Y,fill=NULL), shape=20, size=0.5, stroke=0) +
@@ -170,7 +177,8 @@ p_PC1 = ggplot(data=PC1_pts,aes(x=x,y=y,fill=value)) +
                                 guide=guide_colorbar(title="Forest structure (PC1)")) +
            theme_bw() +
            map_theme +
-           expand_limits(y=min(sites$Y) - 300)
+           expand_limits(y=min(sites$Y) - 300) +
+           geom_sf(data=plantations, aes(x=NULL, y=NULL), fill=NA, color="black", size=0.2)
 
 pred_plot = plot_grid(p_micro, plot_grid(p_elev, p_PC1, nrow=1), nrow=2, rel_heights=c(1.05*1.5,0.8))
 
@@ -268,8 +276,8 @@ plot_list_adjusted_VAN = lapply(sort(unique(pred_mat$var))[c(1:3,5:6,4)], functi
 })
 
 t_1 = text_grob("A. Unadjusted", face = "bold")
-t_2 = text_grob("B. Relative to free-air (gridMET)", face = "bold")
-t_3 = text_grob("C. Relative to free-air (VANMET)", face = "bold")
+t_2 = text_grob("B. Offset (gridMET)", face = "bold")
+t_3 = text_grob("C. Offset (VANMET)", face = "bold")
 
 p = plot_grid(
         plot_grid(t_1, plot_grid(plotlist=plot_list_unadjusted, ncol=1), nrow=2, rel_heights=c(1,20)),
@@ -342,7 +350,7 @@ top = annotate_figure(plot_grid(plotlist=sd_raw, nrow=2), fig.lab="A. unadjusted
 bot = annotate_figure(plot_grid(plotlist=sd_adj, nrow=2), fig.lab="B. Adjusted")
 
 p = plot_grid(ggdraw()+draw_label("A. Unadjusted temperature standard deviation"), plot_grid(plotlist=sd_raw, nrow=2),
-          ggdraw()+draw_label("B. Adjusted temperature standard deviation"), plot_grid(plotlist=sd_adj, nrow=2),
+          ggdraw()+draw_label("B. Offset temperature standard deviation"), plot_grid(plotlist=sd_adj, nrow=2),
           ncol = 1, rel_heights=c(1,20,1,20))
 
 png("output/sd_maps.png", width=6-0.2, height=8.8/6*2*2, units="in", res=400)

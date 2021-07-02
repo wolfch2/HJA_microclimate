@@ -210,7 +210,7 @@ p = ggplot(example_sites, aes(x=Year,y=delta_metrics,color=Plantation,group=POIN
               legend.position="bottom",
               panel.spacing.x=unit(1.5,"lines"),
               legend.background=element_rect(color="black")) +
-        ylab("Value relative to free-air") +
+        ylab("Temperature offset (microclimate - macroclimate)") +
         geom_hline(yintercept=0, linetype="dashed") +
         scale_x_continuous(breaks=seq(2009,2018,by=3)) +
         xlab("Year")

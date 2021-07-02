@@ -49,7 +49,7 @@ require(R.devices) # https://www.jottr.org/2018/07/21/suppressgraphics/
 N_CORE_LARGE = 24 # max. number of cores to use
 N_CORE_SMALL = 6 # number of cores for memmory intensive tasks
 
-setwd("/home/chrisgraywolf/shared/analysis/Andrews2") # set to project directory
+setwd("/mnt/shared/analysis/Andrews2") # set to project directory
 
 set.tempdir("temp")
 setPaths(cachePath="temp", inputPath="temp", modulePath="temp", outputPath="temp", silent = FALSE)
@@ -70,4 +70,3 @@ source("scripts - Andrews2/005 - sd models.R") # 1 sec
 source("scripts - Andrews2/006 - spatial prediction.R") # 2 min
 source("scripts - Andrews2/007 - ALE plot.R") # 4 sec
 Sys.time() - start
-

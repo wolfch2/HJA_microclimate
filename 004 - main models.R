@@ -50,7 +50,7 @@ pred = foreach(arg_row=1:nrow(args_mat), .combine="rbind") %dopar%{
 }
 
 pred$response_long = factor(pred$response, levels=c("value","delta_metrics"),
-                           labels=c("Unadjusted","Relative to free-air"))
+                           labels=c("Unadjusted","Offset"))
 
 ############################## year-year correlations
 
@@ -138,7 +138,7 @@ stats = do.call("rbind", lapply(split(pred, paste(pred$response,pred$var)), func
 pred$year = factor(pred$year); stats$year = factor(stats$year);
 stats$response = factor(stats$response, levels=c("value","delta_metrics"))
 stats$response_long = factor(stats$response, levels=c("value","delta_metrics"),
-                           labels=c("Unadjusted","Relative to free-air"))
+                           labels=c("Unadjusted","Offset"))
 
 dummy = pred; dummy$obs = pred$pred; dummy$pred = pred$obs;
 
@@ -152,6 +152,7 @@ plot_list = lapply(sort(unique(pred$var))[c(1:3,5:6,4)], function(var){
         facet_wrap(~ response_long, scales="free", nrow=1) +
         scale_color_manual(values = colorRampPalette(brewer.pal(9, "Set1"))(length(unique(pred$year))),
                            drop=FALSE, # important!  (don't have all years for all metrics!!)
+                           labels=paste0(2009:2018, "       "),
                            guide=guide_legend(title=NULL, nrow=1,
                                               override.aes = list(size = 1.5))) +
         theme_bw() +
@@ -160,6 +161,7 @@ plot_list = lapply(sort(unique(pred$var))[c(1:3,5:6,4)], function(var){
               axis.title=element_blank(),
               panel.border=element_rect(color="black"),
               legend.background=element_rect(color="black"),
+              legend.key.width=unit(0.5,"lines"),
               strip.background=element_blank(),
               strip.text=element_blank(),
               legend.position="none",
@@ -172,14 +174,14 @@ plot_list = lapply(sort(unique(pred$var))[c(1:3,5:6,4)], function(var){
         return(p)
 })
 
-leg = get_legend(plot_list[[1]] + theme(legend.position="bottom"))
+leg = get_legend(plot_list[[1]] + theme(legend.position="bottom", legend.margin=margin(1,15,1,1)))
 
 p_top = plot_grid(plotlist=plot_list, nrow=3, align="hv")
 y.grob <- textGrob("   Predicted", gp=gpar(fontsize=12), rot=90)
 x.grob <- textGrob("     Observed", gp=gpar(fontsize=12))
 p_top_all = arrangeGrob(p_top, left = y.grob, bottom = x.grob)
 
-png("output/GRIDMET/GRIDMET_CV_year.png", width=7.2, height=6.5, units="in", res=300)
+png("output/GRIDMET/GRIDMET_CV_year.png", width=1.1*7.2, height=1.1*6.5, units="in", res=300)
 print(plot_grid(p_top_all, leg, rel_heights=c(1,0.1), nrow=2))
 dev.off()
 
@@ -189,13 +191,31 @@ dev.off()
 
 stats_year = do.call("rbind", lapply(split(pred, paste(pred$response,pred$var,pred$year)), function(df){
         MAE = mean(abs(df$obs - df$pred))
-        out = data.frame(df[1,], MAE=MAE, n=nrow(df))
+        R2 = max(0, 1 - sum((df$obs - df$pred)^2) / sum((df$obs - mean(df$obs))^2))
+        out = data.frame(df[1,], MAE=MAE, R2=R2, n=nrow(df))
         out$year = as.numeric(as.character(out$year))
         out$var = format_names(out$var)
         return(out)
 }))
 
-p = ggplot(stats_year, aes(x=year, y=MAE, color=response_long)) +
+p_MAE = ggplot(stats_year, aes(x=year, y=MAE, color=response_long)) +
+        geom_point(aes(size=n)) +
+        scale_size(range=c(0.5,3), guide=guide_legend(title="Sites")) +
+        geom_line() +
+        facet_wrap(~ var, scales="free_y") +
+        scale_color_manual(values = colorRampPalette(brewer.pal(9, "Set1"))(length(unique(pred$year))),
+                           guide=guide_legend(title="Response",
+                                              override.aes = list(size = 1.5))) +
+        theme_bw() +
+        theme(axis.text=element_text(color="black"),
+              axis.ticks=element_line(color="black"),
+              panel.border=element_rect(color="black"),
+              legend.position="none",
+              legend.background=element_rect(color="black")) +
+        scale_y_continuous(limits=c(0,NA)) +
+        ylab("Mean absolute error")
+
+p_R2 = ggplot(stats_year, aes(x=year, y=R2, color=response_long)) +
         geom_point(aes(size=n)) +
         scale_size(range=c(0.5,3), guide=guide_legend(title="Sites")) +
         geom_line() +
@@ -208,11 +228,14 @@ p = ggplot(stats_year, aes(x=year, y=MAE, color=response_long)) +
               axis.ticks=element_line(color="black"),
               panel.border=element_rect(color="black"),
               legend.position="bottom",
+              axis.title.y=element_text(angle=0, vjust=0.5),
               legend.background=element_rect(color="black")) +
         scale_y_continuous(limits=c(0,NA)) +
-        ylab("Mean absolute error")
+        ylab(bquote(R^2))
 
-png("output/GRIDMET/MAE_year.png", width=7.5, height=5, units="in", res=300)
+p = plot_grid(p_MAE, p_R2, ncol=1, rel_heights=c(1,1.1), labels=c("A","B"), align="hv")
+
+png("output/GRIDMET/MAE_R2_year.png", width=7.5, height=8, units="in", res=300)
 print(p)
 dev.off()
 
@@ -286,7 +309,7 @@ p = ggplot(rel_inf_agg, aes(x=Scale,y=value,color=Group)) +
         scale_x_log10() +
         expand_limits(y=0) +
         annotation_logticks(sides="b") +
-        xlab("Scale (m)") +
+        xlab("Extent (m)") +
         ylab("Relative influence (%)") +
         theme_bw() +
         theme(axis.text=element_text(color="black"),

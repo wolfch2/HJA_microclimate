@@ -69,9 +69,9 @@ partial_mat = data.frame(rbindlist(foreach(i=1:nrow(pred_mat)) %dopar%{
 partial_mat$variable = str_split_fixed(partial_mat$variable,"XX",2)[,1]
 partial_mat$variable = factor(partial_mat$variable, levels=rast_df$Variable, labels=format_names(rast_df$Variable))
 partial_mat$response_long = factor(partial_mat$response, levels=c("value","delta_metrics"),
-                           labels=c("Unadjusted","Relative to free-air"))
+                           labels=c("Unadjusted","Offset (relative to free-air)"))
 partial_mat$response_sensitivity = factor(partial_mat$response, levels=c("value","delta_metrics","delta_metrics_VANMET"),
-                           labels=c("Unadjusted","Relative to free-air (gridMET)","Relative to free-air (VANMET)"))                           
+                           labels=c("Unadjusted","Offset (gridMET)","Offset (VANMET)"))                           
 partial_mat$var = format_names(partial_mat$var)
 
 ############################## plot!
@@ -108,7 +108,7 @@ pdf("output/quantile/ALE_plot_all.pdf", width=7.75, height=7.75)
 print(all)
 dev.off()
 
-p = ggplot(partial_mat[partial_mat$missing_subset,],
+p = ggplot(partial_mat[partial_mat$missing_subset & ! is.na(partial_mat$response_long),],
                 aes(x=scaled_x,y=yhat,color=variable)) +
          geom_line(size=0.5) +
          #geom_point(shape=124, size=1) + # optional: vertical tick marks indicating observations
